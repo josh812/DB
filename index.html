@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<title>KL Next</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#faf7f2;--surface:#ffffff;--surface2:#f5f1ea;
+  --border:#e8e0d0;--border2:#d4c9b8;
+  --text:#1a1410;--muted:#8a7d6e;--muted2:#b5a898;
+  --accent:#e84a1a;--accent2:#f07040;
+  --train:#1e3a8a;--train-bg:#eff6ff;--train-border:#bfdbfe;
+  --bus:#065f46;--bus-bg:#ecfdf5;--bus-border:#a7f3d0;
+  --yellow:#d97706;--yellow-bg:#fffbeb;
+  --green:#059669;--red:#dc2626;
+  --stripe:#f0ebe2;
+}
+html.dark{
+  --bg:#0f0d0a;--surface:#1a1712;--surface2:#201e19;
+  --border:#2a2720;--border2:#38342c;
+  --text:#f0ead8;--muted:#7a7060;--muted2:#504840;
+  --accent:#f05a28;--accent2:#e8805a;
+  --train:#3b82f6;--train-bg:#0f172a;--train-border:#1e3a5f;
+  --bus:#10b981;--bus-bg:#022c22;--bus-border:#064e3b;
+  --yellow:#f59e0b;--yellow-bg:#1c1500;
+  --green:#34d399;--red:#f87171;
+  --stripe:#171410;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Inter',sans-serif;
+  -webkit-text-size-adjust:100%;
+  overscroll-behavior:none;
+  transition:background .3s,color .3s;
+}
+
+/* ── noise texture overlay ── */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  opacity:.025;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:128px;
+}
+
+.page{position:relative;z-index:1;max-width:800px;margin:0 auto;padding:0 14px calc(28px + env(safe-area-inset-bottom))}
+
+/* ── top bar ── */
+.bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 0 16px;
+  border-bottom:1px solid var(--border);
+  margin-bottom:16px;
+}
+.bar-l{display:flex;align-items:center;gap:12px}
+.logo{
+  font-family:'Space Mono',monospace;font-weight:700;font-size:.78rem;
+  letter-spacing:.08em;
+  background:var(--accent);color:#fff;
+  padding:.22rem .6rem;border-radius:4px;
+  text-transform:uppercase;
+}
+.clk-wrap{display:flex;flex-direction:column;gap:1px}
+#clk{font-family:'Space Mono',monospace;font-size:.82rem;color:var(--text);font-weight:700;letter-spacing:.04em;font-variant-numeric:tabular-nums}
+#daystr{font-size:.6rem;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.bar-r{display:flex;gap:8px;align-items:center}
+.ibtn{
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--muted);font-family:'Inter',sans-serif;font-size:.68rem;font-weight:600;
+  padding:.3rem .7rem;border-radius:6px;cursor:pointer;
+  transition:all .15s;white-space:nowrap;
+  display:flex;align-items:center;gap:4px;
+}
+.ibtn:hover{background:var(--border);color:var(--text)}
+.ibtn:active{transform:scale(.96)}
+.tbtn{width:34px;height:34px;border-radius:50%;padding:0;justify-content:center;font-size:1rem}
+.spin{animation:rot .6s linear infinite;display:inline-block}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+/* ── grid ── */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:520px){.grid{grid-template-columns:1fr}}
+
+/* ── card ── */
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  overflow:hidden;
+  display:flex;flex-direction:column;
+  cursor:pointer;
+  transition:box-shadow .2s,transform .18s,border-color .2s,background .3s;
+  -webkit-tap-highlight-color:transparent;
+  position:relative;
+}
+.card:hover{box-shadow:0 4px 20px rgba(0,0,0,.08);transform:translateY(-1px);border-color:var(--border2)}
+.card:active{transform:scale(.99)}
+html.dark .card:hover{box-shadow:0 4px 20px rgba(0,0,0,.4)}
+
+/* coloured left stripe */
+.card::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:4px;
+}
+.card.train::before{background:var(--train)}
+.card.bus::before{background:var(--bus)}
+
+.card.urgent{animation:upulse 2s ease infinite}
+@keyframes upulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.15)}50%{box-shadow:0 0 0 8px rgba(220,38,38,0)}}
+
+/* ── card header ── */
+.ch{
+  display:flex;align-items:center;
+  padding:11px 13px 10px 16px;
+  border-bottom:1px solid var(--border);
+  gap:6px;
+  background:var(--stripe);
+  transition:background .3s;
+}
+.card.train .ch{background:var(--train-bg)}
+.card.bus .ch{background:var(--bus-bg)}
+.route-wrap{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.sblock{display:flex;flex-direction:column;gap:1px;min-width:0}
+.sl{font-size:.48rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;line-height:1}
+.card.train .sl{color:var(--train);opacity:.7}
+.card.bus .sl{color:var(--bus);opacity:.8}
+.sn{font-size:.9rem;font-weight:700;color:var(--text);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sn.dest{color:var(--accent)}
+.arr{font-size:.95rem;color:var(--muted2);flex-shrink:0;padding:0 4px}
+.mode-pill{
+  font-size:.48rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  padding:.1rem .38rem;border-radius:20px;flex-shrink:0;margin-left:auto;
+}
+.card.train .mode-pill{background:var(--train-border);color:var(--train)}
+.card.bus .mode-pill{background:var(--bus-border);color:var(--bus)}
+
+/* ── card body ── */
+.cb{padding:12px 13px 12px 16px;display:flex;flex-direction:column;gap:0}
+
+/* time picker */
+.picker{display:flex;align-items:center;gap:5px;margin-bottom:10px}
+.tpick{
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text);font-family:'Space Mono',monospace;font-size:.66rem;
+  padding:.26rem .48rem;border-radius:6px;outline:none;flex:1;min-width:0;
+  transition:border-color .15s,background .3s;
+}
+.tpick:focus{border-color:var(--accent);background:var(--bg)}
+.tpick::-webkit-calendar-picker-indicator{cursor:pointer;width:11px;opacity:.4}
+html.dark .tpick::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.3}
+.nowbtn{
+  background:none;border:1px solid var(--border2);color:var(--muted);
+  font-family:'Inter',sans-serif;font-size:.58rem;font-weight:600;
+  padding:.22rem .46rem;border-radius:5px;cursor:pointer;
+  transition:all .13s;flex-shrink:0;white-space:nowrap;
+}
+.nowbtn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* next departure */
+.dep-row{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}
+.dep{
+  font-family:'Space Mono',monospace;font-weight:700;
+  font-size:clamp(2rem,6vw,2.8rem);line-height:1;
+  color:var(--text);letter-spacing:-.02em;
+  transition:color .25s;
+}
+.dep.soon{color:var(--red)}
+.cdpill{
+  font-size:.68rem;font-weight:600;font-family:'Inter',sans-serif;
+  padding:.15rem .48rem;border-radius:20px;white-space:nowrap;flex-shrink:0;
+  background:var(--yellow-bg);border:1px solid color-mix(in srgb,var(--yellow) 30%,transparent);
+  color:var(--yellow);transition:all .25s;
+}
+.cdpill.soon{
+  background:#fef2f2;border-color:#fca5a5;color:var(--red);
+  animation:breathe 1s ease infinite;
+}
+html.dark .cdpill.soon{background:#2d0a0a;border-color:#7f1d1d}
+.cdpill.gone{background:var(--surface2);border-color:var(--border);color:var(--muted);animation:none;font-family:'Space Mono',monospace;font-size:.6rem;font-weight:400}
+@keyframes breathe{0%,100%{opacity:1}50%{opacity:.55}}
+
+/* progress bar */
+.prog{height:3px;background:var(--border);border-radius:3px;margin-bottom:10px;overflow:hidden}
+.progf{height:100%;border-radius:3px;width:0%;transition:width .9s linear,background .4s;background:var(--green)}
+
+/* meta: chip + stop */
+.meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{font-size:.65rem;font-weight:700;padding:.1rem .42rem;border-radius:4px;white-space:nowrap;font-family:'Space Mono',monospace}
+.cs1{background:var(--train-bg);color:var(--train);border:1px solid var(--train-border)}
+.crb{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
+html.dark .crb{background:#2d0a0a;color:#f87171;border-color:#7f1d1d}
+.c104{background:var(--bus-bg);color:var(--bus);border:1px solid var(--bus-border)}
+.c117{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa}
+html.dark .c117{background:#1c0f00;color:#fb923c;border-color:#7c2d12}
+.c136{background:#fffbeb;color:#b45309;border:1px solid #fde68a}
+html.dark .c136{background:#1c1500;color:#f59e0b;border-color:#78350f}
+.from-tag{font-size:.62rem;font-weight:600;color:var(--muted);white-space:nowrap}
+.walk-hint{font-size:.56rem;color:var(--bus);white-space:nowrap;font-weight:500}
+.variant{font-size:.58rem;color:var(--muted2);background:var(--surface2);border:1px solid var(--border);padding:.04rem .3rem;border-radius:3px;white-space:nowrap;font-family:'Space Mono',monospace}
+
+/* divider */
+.div{height:1px;background:var(--border);margin:0 -13px 10px -16px}
+
+/* next 3 label */
+.nl{font-size:.5rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
+.nlist{display:flex;flex-direction:column;gap:4px}
+.ni{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 8px;border-radius:7px;
+  background:var(--surface2);border:1px solid var(--border);
+  transition:background .15s,transform .15s;cursor:default;
+}
+html.dark .ni{background:var(--surface2)}
+.ni:hover{background:var(--border);transform:translateX(2px)}
+.nt{font-family:'Space Mono',monospace;font-weight:700;font-size:.8rem;color:var(--text);min-width:38px;flex-shrink:0}
+.nv{font-size:.55rem;color:var(--muted);font-weight:500}
+.nin{font-size:.55rem;color:var(--muted);margin-left:auto;flex-shrink:0;font-weight:500}
+.noconn{font-size:.66rem;color:var(--muted);font-style:italic;padding:2px 0}
+
+/* ripple */
+.ripple{position:absolute;border-radius:50%;background:rgba(0,0,0,.06);transform:scale(0);animation:rout .5s ease-out forwards;pointer-events:none;z-index:10}
+html.dark .ripple{background:rgba(255,255,255,.08)}
+@keyframes rout{to{transform:scale(4);opacity:0}}
+@keyframes flipIn{0%{opacity:0;transform:translateY(-6px)}100%{opacity:1;transform:translateY(0)}}
+.flip{animation:flipIn .25s ease forwards}
+
+/* footer */
+.footer{
+  text-align:center;font-size:.52rem;color:var(--muted2);
+  padding:20px 0 4px;line-height:1.7;
+  border-top:1px solid var(--border);margin-top:8px;
+}
+
+@media(max-width:360px){.dep{font-size:1.8rem}.cb{padding:10px 11px 10px 14px}.sn{font-size:.82rem}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="bar">
+    <div class="bar-l">
+      <span class="logo">KL</span>
+      <div class="clk-wrap">
+        <span id="clk">—</span>
+        <span id="daystr">—</span>
+      </div>
+    </div>
+    <div class="bar-r">
+      <button class="ibtn" onclick="refreshAll()"><span id="rfic">⟳</span> Neu</button>
+      <button class="ibtn tbtn" onclick="toggleTheme()" title="Hell/Dunkel"><span id="themeIcon">🌙</span></button>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <div class="card train" id="c0" onclick="doRipple(event,0)">
+      <div class="ch">
+        <div class="route-wrap">
+          <div class="sblock"><span class="sl">Von</span><span class="sn">Hbf</span></div>
+          <span class="arr">→</span>
+          <div class="sblock"><span class="sl">Nach</span><span class="sn dest">Kindsbach Bf</span></div>
+        </div>
+        <span class="mode-pill">Zug</span>
+      </div>
+      <div class="cb">
+        <div class="picker"><input type="time" class="tpick" id="tp0" oninput="renderCard(0)"/><button class="nowbtn" onclick="setNow(0);event.stopPropagation()">↺ Jetzt</button></div>
+        <div class="dep-row"><div class="dep" id="d0">—</div><div class="cdpill" id="cd0">—</div></div>
+        <div class="prog"><div class="progf" id="pb0"></div></div>
+        <div class="meta" id="m0"></div>
+        <div class="div"></div>
+        <div class="nl">nächste 3 Fahrten</div>
+        <div class="nlist" id="af0"></div>
+      </div>
+    </div>
+
+    <div class="card train" id="c1" onclick="doRipple(event,1)">
+      <div class="ch">
+        <div class="route-wrap">
+          <div class="sblock"><span class="sl">Von</span><span class="sn">Kindsbach Bf</span></div>
+          <span class="arr">→</span>
+          <div class="sblock"><span class="sl">Nach</span><span class="sn dest">Hbf</span></div>
+        </div>
+        <span class="mode-pill">Zug</span>
+      </div>
+      <div class="cb">
+        <div class="picker"><input type="time" class="tpick" id="tp1" oninput="renderCard(1)"/><button class="nowbtn" onclick="setNow(1);event.stopPropagation()">↺ Jetzt</button></div>
+        <div class="dep-row"><div class="dep" id="d1">—</div><div class="cdpill" id="cd1">—</div></div>
+        <div class="prog"><div class="progf" id="pb1"></div></div>
+        <div class="meta" id="m1"></div>
+        <div class="div"></div>
+        <div class="nl">nächste 3 Fahrten</div>
+        <div class="nlist" id="af1"></div>
+      </div>
+    </div>
+
+    <div class="card bus" id="c2" onclick="doRipple(event,2)">
+      <div class="ch">
+        <div class="route-wrap">
+          <div class="sblock"><span class="sl">Von</span><span class="sn">Stm. / Hbf</span></div>
+          <span class="arr">→</span>
+          <div class="sblock"><span class="sl">Nach</span><span class="sn dest">OSR 15</span></div>
+        </div>
+        <span class="mode-pill">Bus</span>
+      </div>
+      <div class="cb">
+        <div class="picker"><input type="time" class="tpick" id="tp2" oninput="renderCard(2)"/><button class="nowbtn" onclick="setNow(2);event.stopPropagation()">↺ Jetzt</button></div>
+        <div class="dep-row"><div class="dep" id="d2">—</div><div class="cdpill" id="cd2">—</div></div>
+        <div class="prog"><div class="progf" id="pb2"></div></div>
+        <div class="meta" id="m2"></div>
+        <div class="div"></div>
+        <div class="nl">nächste 3 Fahrten</div>
+        <div class="nlist" id="af2"></div>
+      </div>
+    </div>
+
+    <div class="card bus" id="c3" onclick="doRipple(event,3)">
+      <div class="ch">
+        <div class="route-wrap">
+          <div class="sblock"><span class="sl">Von</span><span class="sn">OSR 15</span></div>
+          <span class="arr">→</span>
+          <div class="sblock"><span class="sl">Nach</span><span class="sn dest">Stm. / Hbf</span></div>
+        </div>
+        <span class="mode-pill">Bus</span>
+      </div>
+      <div class="cb">
+        <div class="picker"><input type="time" class="tpick" id="tp3" oninput="renderCard(3)"/><button class="nowbtn" onclick="setNow(3);event.stopPropagation()">↺ Jetzt</button></div>
+        <div class="dep-row"><div class="dep" id="d3">—</div><div class="cdpill" id="cd3">—</div></div>
+        <div class="prog"><div class="progf" id="pb3"></div></div>
+        <div class="meta" id="m3"></div>
+        <div class="div"></div>
+        <div class="nl">nächste 3 Fahrten</div>
+        <div class="nlist" id="af3"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    S 1 · RB 70 · SWK 104 · SWK 117 · VRN 136/137 · Planfahrplan 2025/26<br>
+    Keine offizielle App. Kein Anspruch auf Vollständigkeit oder Richtigkeit. Angaben ohne Gewähr.<br>
+    Für verbindliche Abfahrtszeiten bitte VRN-App, DB Navigator oder swk-kl.de nutzen.
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// FAHRPLANDATEN — exakt aus Fahrpläne.txt
+// Format Züge:  [H, M, linie, chip, variante]
+// Format Busse: [H, M, linie, chip, haltestelle, variante]
+// ══════════════════════════════════════════════════════════════
+const S1_A_WD=[[5,34,'S 1','cs1',''],[7,34,'S 1','cs1',''],[8,34,'S 1','cs1',''],[9,34,'S 1','cs1',''],[10,34,'S 1','cs1',''],[11,34,'S 1','cs1',''],[12,34,'S 1','cs1',''],[13,49,'S 1','cs1',''],[14,34,'S 1','cs1',''],[15,34,'S 1','cs1',''],[16,34,'S 1','cs1',''],[17,45,'S 1','cs1',''],[18,40,'S 1','cs1',''],[19,34,'S 1','cs1',''],[20,34,'S 1','cs1',''],[22,53,'S 1','cs1','']];
+const S1_A_SA=[[5,34,'S 1','cs1',''],[7,34,'S 1','cs1',''],[8,34,'S 1','cs1',''],[9,34,'S 1','cs1',''],[10,34,'S 1','cs1',''],[11,34,'S 1','cs1',''],[12,34,'S 1','cs1',''],[13,41,'S 1','cs1',''],[14,34,'S 1','cs1',''],[15,34,'S 1','cs1',''],[16,34,'S 1','cs1',''],[17,34,'S 1','cs1',''],[18,40,'S 1','cs1',''],[19,34,'S 1','cs1',''],[20,34,'S 1','cs1',''],[22,53,'S 1','cs1','']];
+const S1_A_SO=[[8,34,'S 1','cs1',''],[9,34,'S 1','cs1',''],[10,34,'S 1','cs1',''],[11,34,'S 1','cs1',''],[12,34,'S 1','cs1',''],[13,41,'S 1','cs1',''],[14,34,'S 1','cs1',''],[15,34,'S 1','cs1',''],[16,34,'S 1','cs1',''],[17,34,'S 1','cs1',''],[18,40,'S 1','cs1',''],[19,34,'S 1','cs1',''],[20,34,'S 1','cs1',''],[22,53,'S 1','cs1','']];
+const RB_A_WD=[[7,4,'RB 70','crb',''],[8,3,'RB 70','crb',''],[9,3,'RB 70','crb',''],[10,3,'RB 70','crb',''],[11,3,'RB 70','crb',''],[12,3,'RB 70','crb',''],[13,3,'RB 70','crb',''],[14,3,'RB 70','crb',''],[15,3,'RB 70','crb',''],[16,3,'RB 70','crb',''],[17,3,'RB 70','crb',''],[18,3,'RB 70','crb',''],[19,3,'RB 70','crb',''],[20,3,'RB 70','crb',''],[22,5,'RB 70','crb',''],[23,29,'RB 70','crb','RE1']];
+const RB_A_SA=[[7,4,'RB 70','crb',''],[8,3,'RB 70','crb','RE1'],[9,3,'RB 70','crb',''],[10,3,'RB 70','crb',''],[11,3,'RB 70','crb',''],[12,3,'RB 70','crb',''],[13,3,'RB 70','crb',''],[14,3,'RB 70','crb',''],[15,3,'RB 70','crb',''],[16,3,'RB 70','crb',''],[17,3,'RB 70','crb',''],[18,3,'RB 70','crb',''],[19,3,'RB 70','crb',''],[20,3,'RB 70','crb',''],[21,5,'RB 70','crb',''],[22,5,'RB 70','crb',''],[23,29,'RB 70','crb','RE1']];
+const RB_A_SO=[[5,42,'RB 70','crb',''],[7,4,'RB 70','crb',''],[8,3,'RB 70','crb',''],[9,3,'RB 70','crb',''],[10,3,'RB 70','crb',''],[11,3,'RB 70','crb',''],[12,3,'RB 70','crb',''],[13,3,'RB 70','crb',''],[14,3,'RB 70','crb',''],[15,3,'RB 70','crb',''],[16,3,'RB 70','crb',''],[17,3,'RB 70','crb',''],[18,3,'RB 70','crb',''],[19,3,'RB 70','crb',''],[20,3,'RB 70','crb',''],[22,5,'RB 70','crb',''],[23,29,'RB 70','crb','RE1']];
+const S1_B_WD=[[0,32,'S 1','cs1','S2'],[5,36,'S 1','cs1','S44'],[5,55,'S 1','cs1','S3'],[7,13,'S 1','cs1',''],[8,5,'S 1','cs1',''],[9,13,'S 1','cs1',''],[10,13,'S 1','cs1',''],[11,13,'S 1','cs1',''],[12,13,'S 1','cs1',''],[13,13,'S 1','cs1',''],[14,13,'S 1','cs1',''],[15,13,'S 1','cs1',''],[16,13,'S 1','cs1',''],[17,13,'S 1','cs1',''],[18,13,'S 1','cs1',''],[19,13,'S 1','cs1',''],[20,13,'S 1','cs1','']];
+const S1_B_SA=[[0,32,'S 1','cs1','S2'],[5,55,'S 1','cs1','S3'],[7,13,'S 1','cs1',''],[8,5,'S 1','cs1',''],[10,13,'S 1','cs1',''],[11,13,'S 1','cs1',''],[12,13,'S 1','cs1',''],[13,13,'S 1','cs1',''],[14,13,'S 1','cs1',''],[15,13,'S 1','cs1',''],[16,13,'S 1','cs1',''],[17,13,'S 1','cs1',''],[18,13,'S 1','cs1',''],[19,13,'S 1','cs1',''],[20,13,'S 1','cs1','']];
+const S1_B_SO=[[0,32,'S 1','cs1','S2'],[8,5,'S 1','cs1',''],[10,13,'S 1','cs1',''],[11,13,'S 1','cs1',''],[12,13,'S 1','cs1',''],[13,13,'S 1','cs1',''],[14,13,'S 1','cs1',''],[15,13,'S 1','cs1',''],[16,13,'S 1','cs1',''],[17,13,'S 1','cs1',''],[18,13,'S 1','cs1',''],[19,13,'S 1','cs1',''],[20,13,'S 1','cs1','']];
+const RB_B_WD=[[6,37,'RB 70','crb',''],[7,31,'RB 70','crb','RB67'],[7,44,'RB 70','crb','RB71'],[8,44,'RB 70','crb','RB71'],[9,44,'RB 70','crb',''],[10,44,'RB 70','crb',''],[11,44,'RB 70','crb',''],[12,44,'RB 70','crb',''],[13,44,'RB 70','crb',''],[14,44,'RB 70','crb',''],[15,45,'RB 70','crb',''],[16,44,'RB 70','crb',''],[17,44,'RB 70','crb',''],[18,44,'RB 70','crb',''],[19,45,'RB 70','crb',''],[20,44,'RB 70','crb',''],[21,9,'RB 70','crb','RB67'],[21,44,'RB 70','crb','']];
+const RB_B_SA=[[6,37,'RB 70','crb',''],[7,44,'RB 70','crb','RB71'],[8,44,'RB 70','crb','RB71'],[9,9,'RB 70','crb','RB67'],[9,44,'RB 70','crb',''],[10,44,'RB 70','crb',''],[11,44,'RB 70','crb',''],[12,44,'RB 70','crb',''],[13,44,'RB 70','crb',''],[14,44,'RB 70','crb',''],[15,45,'RB 70','crb',''],[16,44,'RB 70','crb',''],[17,44,'RB 70','crb',''],[18,44,'RB 70','crb',''],[19,45,'RB 70','crb',''],[20,44,'RB 70','crb',''],[21,9,'RB 70','crb','RB67'],[21,44,'RB 70','crb','']];
+const RB_B_SO=[[6,37,'RB 70','crb',''],[7,44,'RB 70','crb','RB71'],[8,44,'RB 70','crb',''],[9,26,'RB 70','crb','RE1'],[9,44,'RB 70','crb',''],[10,44,'RB 70','crb',''],[11,44,'RB 70','crb',''],[12,44,'RB 70','crb',''],[13,44,'RB 70','crb',''],[14,44,'RB 70','crb',''],[15,45,'RB 70','crb',''],[16,44,'RB 70','crb',''],[17,44,'RB 70','crb',''],[18,44,'RB 70','crb',''],[19,45,'RB 70','crb',''],[20,44,'RB 70','crb',''],[21,9,'RB 70','crb','RB67'],[21,44,'RB 70','crb',''],[22,44,'RB 70','crb','']];
+const B104_TO_WD=[[5,45,'104','c104','Stadtmitte',''],[6,15,'104','c104','Stadtmitte',''],[6,45,'104','c104','Stadtmitte',''],[7,0,'104','c104','Stadtmitte',''],[7,15,'104','c104','Stadtmitte',''],[7,30,'104','c104','Stadtmitte',''],[7,45,'104','c104','Stadtmitte',''],[8,0,'104','c104','Stadtmitte',''],[8,15,'104','c104','Stadtmitte',''],[8,30,'104','c104','Stadtmitte',''],[8,45,'104','c104','Stadtmitte',''],[9,0,'104','c104','Stadtmitte',''],[9,15,'104','c104','Stadtmitte',''],[9,30,'104','c104','Stadtmitte',''],[9,45,'104','c104','Stadtmitte',''],[10,0,'104','c104','Stadtmitte',''],[10,15,'104','c104','Stadtmitte',''],[10,30,'104','c104','Stadtmitte',''],[10,45,'104','c104','Stadtmitte',''],[11,0,'104','c104','Stadtmitte',''],[11,15,'104','c104','Stadtmitte',''],[11,30,'104','c104','Stadtmitte',''],[11,45,'104','c104','Stadtmitte',''],[12,0,'104','c104','Stadtmitte',''],[12,15,'104','c104','Stadtmitte',''],[12,30,'104','c104','Stadtmitte',''],[12,45,'104','c104','Stadtmitte',''],[13,0,'104','c104','Stadtmitte',''],[13,15,'104','c104','Stadtmitte',''],[13,30,'104','c104','Stadtmitte',''],[13,45,'104','c104','Stadtmitte',''],[14,0,'104','c104','Stadtmitte',''],[14,15,'104','c104','Stadtmitte',''],[14,30,'104','c104','Stadtmitte',''],[14,45,'104','c104','Stadtmitte',''],[15,0,'104','c104','Stadtmitte',''],[15,15,'104','c104','Stadtmitte',''],[15,30,'104','c104','Stadtmitte',''],[15,45,'104','c104','Stadtmitte',''],[16,0,'104','c104','Stadtmitte',''],[16,15,'104','c104','Stadtmitte',''],[16,30,'104','c104','Stadtmitte',''],[16,45,'104','c104','Stadtmitte',''],[17,0,'104','c104','Stadtmitte',''],[17,15,'104','c104','Stadtmitte',''],[17,30,'104','c104','Stadtmitte',''],[17,45,'104','c104','Stadtmitte',''],[18,0,'104','c104','Stadtmitte',''],[18,15,'104','c104','Stadtmitte',''],[18,30,'104','c104','Stadtmitte',''],[18,45,'104','c104','Stadtmitte',''],[19,0,'104','c104','Stadtmitte',''],[19,15,'104','c104','Stadtmitte',''],[19,30,'104','c104','Stadtmitte',''],[19,53,'104','c104','Stadtmitte',''],[20,0,'104','c104','Stadtmitte',''],[20,30,'104','c104','Stadtmitte',''],[21,15,'104','c104','Stadtmitte',''],[21,45,'104','c104','Stadtmitte',''],[22,15,'104','c104','Stadtmitte',''],[22,45,'104','c104','Stadtmitte',''],[23,15,'104','c104','Stadtmitte','']];
+const B104_TO_SA=[[0,45,'104','c104','Stadtmitte','N40'],[1,45,'104','c104','Stadtmitte','N40'],[2,45,'104','c104','Stadtmitte','N40'],[6,15,'104','c104','Stadtmitte',''],[6,45,'104','c104','Stadtmitte',''],[7,0,'104','c104','Stadtmitte',''],[7,15,'104','c104','Stadtmitte',''],[7,45,'104','c104','Stadtmitte',''],[8,0,'104','c104','Stadtmitte',''],[8,15,'104','c104','Stadtmitte',''],[8,30,'104','c104','Stadtmitte',''],[8,45,'104','c104','Stadtmitte',''],[9,0,'104','c104','Stadtmitte',''],[9,15,'104','c104','Stadtmitte',''],[9,30,'104','c104','Stadtmitte',''],[9,45,'104','c104','Stadtmitte',''],[10,0,'104','c104','Stadtmitte',''],[10,15,'104','c104','Stadtmitte',''],[10,30,'104','c104','Stadtmitte',''],[10,45,'104','c104','Stadtmitte',''],[11,0,'104','c104','Stadtmitte',''],[11,15,'104','c104','Stadtmitte',''],[11,30,'104','c104','Stadtmitte',''],[11,45,'104','c104','Stadtmitte',''],[12,0,'104','c104','Stadtmitte',''],[12,15,'104','c104','Stadtmitte',''],[12,30,'104','c104','Stadtmitte',''],[12,45,'104','c104','Stadtmitte',''],[13,0,'104','c104','Stadtmitte',''],[13,15,'104','c104','Stadtmitte',''],[13,30,'104','c104','Stadtmitte',''],[13,45,'104','c104','Stadtmitte',''],[14,0,'104','c104','Stadtmitte',''],[14,15,'104','c104','Stadtmitte',''],[14,30,'104','c104','Stadtmitte',''],[14,45,'104','c104','Stadtmitte',''],[15,0,'104','c104','Stadtmitte',''],[15,15,'104','c104','Stadtmitte',''],[15,30,'104','c104','Stadtmitte',''],[16,0,'104','c104','Stadtmitte',''],[16,30,'104','c104','Stadtmitte',''],[17,0,'104','c104','Stadtmitte',''],[17,15,'104','c104','Stadtmitte',''],[17,30,'104','c104','Stadtmitte',''],[18,15,'104','c104','Stadtmitte',''],[18,45,'104','c104','Stadtmitte',''],[19,15,'104','c104','Stadtmitte',''],[19,30,'104','c104','Stadtmitte',''],[20,15,'104','c104','Stadtmitte',''],[20,45,'104','c104','Stadtmitte',''],[21,15,'104','c104','Stadtmitte',''],[21,45,'104','c104','Stadtmitte',''],[22,15,'104','c104','Stadtmitte',''],[22,45,'104','c104','Stadtmitte',''],[23,15,'104','c104','Stadtmitte','']];
+const B104_TO_SO=[[0,45,'104','c104','Stadtmitte','N40'],[1,45,'104','c104','Stadtmitte','N40'],[2,45,'104','c104','Stadtmitte','N40'],[8,15,'104','c104','Stadtmitte',''],[8,45,'104','c104','Stadtmitte',''],[9,15,'104','c104','Stadtmitte',''],[9,45,'104','c104','Stadtmitte',''],[10,15,'104','c104','Stadtmitte',''],[10,45,'104','c104','Stadtmitte',''],[11,15,'104','c104','Stadtmitte',''],[11,45,'104','c104','Stadtmitte',''],[12,15,'104','c104','Stadtmitte',''],[12,45,'104','c104','Stadtmitte',''],[13,0,'104','c104','Stadtmitte',''],[13,30,'104','c104','Stadtmitte',''],[14,0,'104','c104','Stadtmitte',''],[14,30,'104','c104','Stadtmitte',''],[15,0,'104','c104','Stadtmitte',''],[15,30,'104','c104','Stadtmitte',''],[16,0,'104','c104','Stadtmitte',''],[16,30,'104','c104','Stadtmitte',''],[17,0,'104','c104','Stadtmitte',''],[17,30,'104','c104','Stadtmitte',''],[18,0,'104','c104','Stadtmitte',''],[18,30,'104','c104','Stadtmitte',''],[19,0,'104','c104','Stadtmitte',''],[19,30,'104','c104','Stadtmitte',''],[20,15,'104','c104','Stadtmitte',''],[20,45,'104','c104','Stadtmitte',''],[21,15,'104','c104','Stadtmitte',''],[21,45,'104','c104','Stadtmitte',''],[22,15,'104','c104','Stadtmitte',''],[22,45,'104','c104','Stadtmitte',''],[23,15,'104','c104','Stadtmitte','']];
+const B117_TO_WD=[[7,5,'117','c117','KL Hbf',''],[7,35,'117','c117','KL Hbf',''],[8,5,'117','c117','KL Hbf',''],[8,35,'117','c117','KL Hbf',''],[9,5,'117','c117','KL Hbf',''],[9,35,'117','c117','KL Hbf',''],[10,5,'117','c117','KL Hbf',''],[10,35,'117','c117','KL Hbf',''],[11,5,'117','c117','KL Hbf',''],[11,35,'117','c117','KL Hbf',''],[12,5,'117','c117','KL Hbf',''],[12,35,'117','c117','KL Hbf',''],[13,5,'117','c117','KL Hbf',''],[13,35,'117','c117','KL Hbf',''],[14,5,'117','c117','KL Hbf',''],[14,35,'117','c117','KL Hbf',''],[15,5,'117','c117','KL Hbf',''],[15,35,'117','c117','KL Hbf',''],[16,5,'117','c117','KL Hbf',''],[16,35,'117','c117','KL Hbf',''],[17,5,'117','c117','KL Hbf',''],[17,35,'117','c117','KL Hbf','']];
+const B136_TO_WD=[[4,40,'136','c136','KL Hbf',''],[6,20,'136','c136','KL Hbf',''],[6,40,'136','c136','KL Hbf',''],[7,40,'136','c136','KL Hbf',''],[8,40,'136','c136','KL Hbf',''],[9,0,'136','c136','KL Hbf',''],[9,40,'136','c136','KL Hbf',''],[10,40,'136','c136','KL Hbf',''],[11,20,'136','c136','KL Hbf',''],[11,40,'136','c136','KL Hbf',''],[12,20,'136','c136','KL Hbf',''],[12,35,'136','c136','KL Hbf',''],[12,40,'136','c136','KL Hbf',''],[13,15,'136','c136','KL Hbf',''],[13,20,'136','c136','KL Hbf',''],[13,30,'136','c136','KL Hbf',''],[13,40,'136','c136','KL Hbf',''],[14,14,'136','c136','KL Hbf',''],[14,40,'136','c136','KL Hbf',''],[15,40,'136','c136','KL Hbf',''],[15,45,'136','c136','KL Hbf',''],[16,40,'136','c136','KL Hbf',''],[16,50,'136','c136','KL Hbf',''],[17,40,'136','c136','KL Hbf',''],[18,10,'136','c136','KL Hbf',''],[18,40,'136','c136','KL Hbf',''],[19,40,'136','c136','KL Hbf',''],[20,10,'136','c136','KL Hbf',''],[20,40,'136','c136','KL Hbf','']];
+const B136_TO_SA=[[6,36,'136','c136','KL Hbf',''],[8,36,'136','c136','KL Hbf',''],[10,36,'136','c136','KL Hbf',''],[12,36,'136','c136','KL Hbf',''],[14,36,'136','c136','KL Hbf',''],[16,36,'136','c136','KL Hbf',''],[18,6,'136','c136','KL Hbf',''],[20,6,'136','c136','KL Hbf','']];
+const B104_FR_WD=[[5,3,'104','c104','Donnersbergstr.',''],[5,33,'104','c104','Donnersbergstr.',''],[5,48,'104','c104','Donnersbergstr.',''],[6,3,'104','c104','Donnersbergstr.',''],[6,13,'104','c104','Donnersbergstr.',''],[6,28,'104','c104','Donnersbergstr.',''],[6,43,'104','c104','Donnersbergstr.',''],[6,58,'104','c104','Donnersbergstr.',''],[7,13,'104','c104','Donnersbergstr.',''],[7,28,'104','c104','Donnersbergstr.',''],[7,43,'104','c104','Donnersbergstr.',''],[8,1,'104','c104','Donnersbergstr.',''],[8,13,'104','c104','Donnersbergstr.',''],[8,31,'104','c104','Donnersbergstr.',''],[8,43,'104','c104','Donnersbergstr.',''],[9,1,'104','c104','Donnersbergstr.',''],[9,13,'104','c104','Donnersbergstr.',''],[9,31,'104','c104','Donnersbergstr.',''],[9,43,'104','c104','Donnersbergstr.',''],[10,1,'104','c104','Donnersbergstr.',''],[10,13,'104','c104','Donnersbergstr.',''],[10,31,'104','c104','Donnersbergstr.',''],[10,43,'104','c104','Donnersbergstr.',''],[11,1,'104','c104','Donnersbergstr.',''],[11,13,'104','c104','Donnersbergstr.',''],[11,31,'104','c104','Donnersbergstr.',''],[11,43,'104','c104','Donnersbergstr.',''],[12,1,'104','c104','Donnersbergstr.',''],[12,13,'104','c104','Donnersbergstr.',''],[12,31,'104','c104','Donnersbergstr.',''],[12,43,'104','c104','Donnersbergstr.',''],[13,1,'104','c104','Donnersbergstr.',''],[13,13,'104','c104','Donnersbergstr.',''],[13,31,'104','c104','Donnersbergstr.',''],[13,43,'104','c104','Donnersbergstr.',''],[14,1,'104','c104','Donnersbergstr.',''],[14,13,'104','c104','Donnersbergstr.',''],[14,31,'104','c104','Donnersbergstr.',''],[14,43,'104','c104','Donnersbergstr.',''],[15,1,'104','c104','Donnersbergstr.',''],[15,13,'104','c104','Donnersbergstr.',''],[15,31,'104','c104','Donnersbergstr.',''],[15,43,'104','c104','Donnersbergstr.',''],[16,1,'104','c104','Donnersbergstr.',''],[16,13,'104','c104','Donnersbergstr.',''],[16,31,'104','c104','Donnersbergstr.',''],[16,43,'104','c104','Donnersbergstr.',''],[17,1,'104','c104','Donnersbergstr.',''],[17,13,'104','c104','Donnersbergstr.',''],[17,31,'104','c104','Donnersbergstr.',''],[17,43,'104','c104','Donnersbergstr.',''],[18,1,'104','c104','Donnersbergstr.',''],[18,13,'104','c104','Donnersbergstr.',''],[18,31,'104','c104','Donnersbergstr.',''],[18,43,'104','c104','Donnersbergstr.',''],[19,1,'104','c104','Donnersbergstr.',''],[19,28,'104','c104','Donnersbergstr.',''],[20,16,'104','c104','Donnersbergstr.',''],[21,3,'104','c104','Donnersbergstr.',''],[21,33,'104','c104','Donnersbergstr.',''],[22,3,'104','c104','Donnersbergstr.',''],[22,33,'104','c104','Donnersbergstr.',''],[23,3,'104','c104','Donnersbergstr.','']];
+const B104_FR_SA=[[5,33,'104','c104','Donnersbergstr.',''],[6,3,'104','c104','Donnersbergstr.',''],[6,33,'104','c104','Donnersbergstr.',''],[6,48,'104','c104','Donnersbergstr.',''],[7,3,'104','c104','Donnersbergstr.',''],[7,13,'104','c104','Donnersbergstr.',''],[7,28,'104','c104','Donnersbergstr.',''],[7,43,'104','c104','Donnersbergstr.',''],[8,0,'104','c104','Donnersbergstr.',''],[8,13,'104','c104','Donnersbergstr.',''],[8,31,'104','c104','Donnersbergstr.',''],[8,43,'104','c104','Donnersbergstr.',''],[9,1,'104','c104','Donnersbergstr.',''],[9,13,'104','c104','Donnersbergstr.',''],[9,31,'104','c104','Donnersbergstr.',''],[9,43,'104','c104','Donnersbergstr.',''],[10,1,'104','c104','Donnersbergstr.',''],[10,13,'104','c104','Donnersbergstr.',''],[10,31,'104','c104','Donnersbergstr.',''],[10,43,'104','c104','Donnersbergstr.',''],[11,1,'104','c104','Donnersbergstr.',''],[11,13,'104','c104','Donnersbergstr.',''],[11,31,'104','c104','Donnersbergstr.',''],[11,43,'104','c104','Donnersbergstr.',''],[12,13,'104','c104','Donnersbergstr.',''],[12,31,'104','c104','Donnersbergstr.',''],[12,43,'104','c104','Donnersbergstr.',''],[13,1,'104','c104','Donnersbergstr.',''],[13,13,'104','c104','Donnersbergstr.',''],[13,31,'104','c104','Donnersbergstr.',''],[13,43,'104','c104','Donnersbergstr.',''],[14,1,'104','c104','Donnersbergstr.',''],[14,28,'104','c104','Donnersbergstr.',''],[15,1,'104','c104','Donnersbergstr.',''],[15,28,'104','c104','Donnersbergstr.',''],[16,1,'104','c104','Donnersbergstr.',''],[17,3,'104','c104','Donnersbergstr.',''],[17,28,'104','c104','Donnersbergstr.',''],[18,3,'104','c104','Donnersbergstr.',''],[18,33,'104','c104','Donnersbergstr.',''],[19,3,'104','c104','Donnersbergstr.',''],[19,33,'104','c104','Donnersbergstr.',''],[20,3,'104','c104','Donnersbergstr.',''],[20,33,'104','c104','Donnersbergstr.',''],[21,3,'104','c104','Donnersbergstr.',''],[21,33,'104','c104','Donnersbergstr.',''],[22,3,'104','c104','Donnersbergstr.',''],[22,33,'104','c104','Donnersbergstr.',''],[23,3,'104','c104','Donnersbergstr.','']];
+const B104_FR_SO=[[7,33,'104','c104','Donnersbergstr.',''],[8,3,'104','c104','Donnersbergstr.',''],[8,33,'104','c104','Donnersbergstr.',''],[9,3,'104','c104','Donnersbergstr.',''],[9,33,'104','c104','Donnersbergstr.',''],[10,3,'104','c104','Donnersbergstr.',''],[10,33,'104','c104','Donnersbergstr.',''],[11,3,'104','c104','Donnersbergstr.',''],[11,33,'104','c104','Donnersbergstr.',''],[12,3,'104','c104','Donnersbergstr.',''],[12,33,'104','c104','Donnersbergstr.',''],[12,58,'104','c104','Donnersbergstr.',''],[13,31,'104','c104','Donnersbergstr.',''],[13,58,'104','c104','Donnersbergstr.',''],[14,31,'104','c104','Donnersbergstr.',''],[14,58,'104','c104','Donnersbergstr.',''],[15,31,'104','c104','Donnersbergstr.',''],[15,58,'104','c104','Donnersbergstr.',''],[16,31,'104','c104','Donnersbergstr.',''],[16,58,'104','c104','Donnersbergstr.',''],[17,31,'104','c104','Donnersbergstr.',''],[17,58,'104','c104','Donnersbergstr.',''],[18,31,'104','c104','Donnersbergstr.',''],[19,3,'104','c104','Donnersbergstr.',''],[19,33,'104','c104','Donnersbergstr.',''],[20,3,'104','c104','Donnersbergstr.',''],[20,33,'104','c104','Donnersbergstr.',''],[21,3,'104','c104','Donnersbergstr.',''],[21,33,'104','c104','Donnersbergstr.',''],[22,3,'104','c104','Donnersbergstr.',''],[22,33,'104','c104','Donnersbergstr.',''],[23,3,'104','c104','Donnersbergstr.','']];
+const B117_FR_WD=[[7,13,'117','c117','Hst: OSR',''],[7,43,'117','c117','Hst: OSR',''],[8,13,'117','c117','Hst: OSR',''],[8,43,'117','c117','Hst: OSR',''],[9,13,'117','c117','Hst: OSR',''],[9,43,'117','c117','Hst: OSR',''],[10,13,'117','c117','Hst: OSR',''],[10,43,'117','c117','Hst: OSR',''],[11,13,'117','c117','Hst: OSR',''],[11,43,'117','c117','Hst: OSR',''],[12,13,'117','c117','Hst: OSR',''],[12,43,'117','c117','Hst: OSR',''],[13,13,'117','c117','Hst: OSR',''],[13,43,'117','c117','Hst: OSR',''],[14,13,'117','c117','Hst: OSR',''],[14,43,'117','c117','Hst: OSR',''],[15,13,'117','c117','Hst: OSR',''],[15,43,'117','c117','Hst: OSR',''],[16,13,'117','c117','Hst: OSR',''],[16,43,'117','c117','Hst: OSR',''],[17,13,'117','c117','Hst: OSR',''],[17,43,'117','c117','Hst: OSR',''],[18,13,'117','c117','Hst: OSR','']];
+
+const DAYS=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+const sel=(d,wd,sa,so)=>d===0?so:d===6?sa:wd;
+const fmtT=d=>d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+const p2=n=>String(n).padStart(2,'0');
+
+function buildList(base,tt){
+  const r=[];
+  for(let off=0;off<=1;off++){
+    const d=new Date(base);d.setDate(d.getDate()+off);d.setHours(0,0,0,0);
+    for(const row of tt){const[H,M,...rest]=row;const dep=new Date(d);dep.setHours(H,M,0,0);r.push({dep,rest});}
+  }
+  return r.sort((a,b)=>a.dep-b.dep);
+}
+function getFrom(idx){
+  const v=document.getElementById('tp'+idx).value;
+  if(!v)return new Date();
+  const[h,m]=v.split(':').map(Number);
+  const d=new Date();d.setHours(h,m,0,0);return d;
+}
+function nextMerged(ft,arrays){
+  const all=[];
+  for(const tt of arrays)if(tt&&tt.length)all.push(...buildList(ft,tt));
+  return all.sort((a,b)=>a.dep-b.dep).filter(j=>j.dep>ft);
+}
+function getArrays(idx,dow){
+  const wd=dow>=1&&dow<=5;
+  if(idx===0)return[sel(dow,S1_A_WD,S1_A_SA,S1_A_SO),sel(dow,RB_A_WD,RB_A_SA,RB_A_SO)];
+  if(idx===1)return[sel(dow,S1_B_WD,S1_B_SA,S1_B_SO),sel(dow,RB_B_WD,RB_B_SA,RB_B_SO)];
+  if(idx===2)return[sel(dow,B104_TO_WD,B104_TO_SA,B104_TO_SO),wd?B117_TO_WD:[],sel(dow,B136_TO_WD,B136_TO_SA,[])];
+  return[sel(dow,B104_FR_WD,B104_FR_SA,B104_FR_SO),wd?B117_FR_WD:[]];
+}
+
+let cdTimer=null;
+const cdFns=[null,null,null,null];
+const pbData=[null,null,null,null];
+
+setInterval(()=>document.getElementById('clk').textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),1000);
+(()=>document.getElementById('clk').textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'}))();
+
+function setNow(i){const n=new Date();document.getElementById('tp'+i).value=`${p2(n.getHours())}:${p2(n.getMinutes())}`;renderCard(i);}
+function initAll(){for(let i=0;i<4;i++)setNow(i);document.getElementById('daystr').textContent=DAYS[new Date().getDay()];}
+
+function doRipple(e,idx){
+  const card=document.getElementById('c'+idx);const r=document.createElement('div');r.className='ripple';
+  const rc=card.getBoundingClientRect();const sz=Math.max(rc.width,rc.height);
+  r.style.cssText=`width:${sz}px;height:${sz}px;left:${e.clientX-rc.left-sz/2}px;top:${e.clientY-rc.top-sz/2}px`;
+  card.appendChild(r);setTimeout(()=>r.remove(),500);
+}
+
+function toggleTheme(){
+  const d=document.documentElement.classList.toggle('dark');
+  document.getElementById('themeIcon').textContent=d?'☀️':'🌙';
+  localStorage.setItem('kl-theme',d?'dark':'light');
+}
+(()=>{
+  const s=localStorage.getItem('kl-theme');
+  if(s==='dark'){document.documentElement.classList.add('dark');document.getElementById('themeIcon').textContent='☀️';}
+})();
+
+function renderCard(idx){
+  const now=new Date();
+  const ft=getFrom(idx);
+  const dow=ft.getDay();
+  const journeys=nextMerged(ft,getArrays(idx,dow));
+  const isBus=idx>=2;
+
+  const depEl=document.getElementById('d'+idx);
+  const cdEl=document.getElementById('cd'+idx);
+  const metaEl=document.getElementById('m'+idx);
+  const afEl=document.getElementById('af'+idx);
+  const pbEl=document.getElementById('pb'+idx);
+  const card=document.getElementById('c'+idx);
+
+  if(!journeys.length){
+    depEl.textContent='—';depEl.className='dep';
+    cdEl.textContent='Kein Betrieb';cdEl.className='cdpill gone';
+    metaEl.innerHTML='<span class="noconn">Kein Betrieb heute</span>';
+    afEl.innerHTML='';pbEl.style.width='0%';card.classList.remove('urgent');
+    cdFns[idx]=null;pbData[idx]=null;return;
+  }
+
+  const j=journeys[0];
+  const ln=j.rest[0],ch=j.rest[1];
+  const variant=isBus?j.rest[3]:j.rest[2];
+  const hst=isBus?j.rest[2]:'';
+
+  depEl.classList.remove('flip');void depEl.offsetWidth;depEl.classList.add('flip');
+  depEl.textContent=fmtT(j.dep);
+
+  let mh=`<span class="chip ${ch}">${ln}</span>`;
+  if(variant)mh+=`<span class="variant">${variant}</span>`;
+  if(hst)mh+=`<span class="from-tag">📍 ${hst}</span>`;
+  if(hst==='Donnersbergstr.')mh+=`<span class="walk-hint">🚶 3 Min von OSR 15</span>`;
+  metaEl.innerHTML=mh;
+
+  const nextGap=journeys.length>1?(journeys[1].dep-j.dep):30*60000;
+  pbData[idx]={dep:j.dep,prevDep:new Date(j.dep-nextGap)};
+
+  const next3=journeys.slice(1,4);
+  afEl.innerHTML=!next3.length?'<span class="noconn">—</span>':next3.map(jj=>{
+    const ln2=jj.rest[0],ch2=jj.rest[1];
+    const v2=isBus?jj.rest[3]:jj.rest[2];
+    const h2=isBus?jj.rest[2]:'';
+    const ms=Math.round((jj.dep-now)/60000);
+    const inStr=ms<=0?'abg.':ms<60?`${ms}m`:`${Math.floor(ms/60)}h ${p2(ms%60)}m`;
+    return `<div class="ni">
+      <span class="nt">${fmtT(jj.dep)}</span>
+      <span class="chip ${ch2}" style="font-size:.58rem;padding:.06rem .3rem">${ln2}</span>
+      ${h2?`<span class="nv">📍 ${h2}</span>`:''}
+      ${v2?`<span class="nv">${v2}</span>`:''}
+      <span class="nin">${inStr}</span>
+    </div>`;
+  }).join('');
+
+  cdFns[idx]=()=>{
+    const ms=j.dep-new Date();
+    const c=document.getElementById('c'+idx);
+    const de=document.getElementById('d'+idx);
+    const ce=document.getElementById('cd'+idx);
+    const pe=document.getElementById('pb'+idx);
+    if(ms<=0){
+      ce.textContent='Jetzt!';ce.className='cdpill soon';de.className='dep soon';
+      c.classList.add('urgent');pe.style.width='100%';pe.style.background='var(--red)';return;
+    }
+    const m=Math.floor(ms/60000);
+    ce.textContent=m>0?(m<60?`in ${m}m`:`in ${Math.floor(m/60)}h ${m%60}m`):`< 1m`;
+    if(m<5){ce.className='cdpill soon';de.className='dep soon';c.classList.add('urgent');}
+    else{ce.className='cdpill';de.className='dep';c.classList.remove('urgent');}
+    if(pbData[idx]){
+      const{dep,prevDep}=pbData[idx];
+      const pct=Math.min(100,Math.max(0,((new Date()-prevDep)/(dep-prevDep))*100));
+      pe.style.width=pct+'%';
+      pe.style.background=pct<70?'var(--green)':pct<90?'var(--yellow)':'var(--red)';
+    }
+  };
+  cdFns[idx]();
+}
+
+function refreshAll(){
+  const ic=document.getElementById('rfic');
+  ic.classList.add('spin');setTimeout(()=>ic.classList.remove('spin'),500);
+  document.getElementById('daystr').textContent=DAYS[new Date().getDay()];
+  for(let i=0;i<4;i++)renderCard(i);
+}
+
+if(cdTimer)clearInterval(cdTimer);
+cdTimer=setInterval(()=>cdFns.forEach(f=>f&&f()),1000);
+setInterval(refreshAll,30000);
+initAll();
+</script>
+</body>
+</html>
